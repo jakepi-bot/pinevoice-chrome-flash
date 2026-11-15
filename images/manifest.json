@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "chip": "bl606p",
+  "device": "Pine64 PineVoice (BL606P)",
+  "images": [
+    {
+      "id": "0.9.2-okay-nabu",
+      "label": "0.9.2 okay-nabu (new wake word) \u2014 root 38f7498",
+      "version": "0.9.2 okay-nabu (new wake word)",
+      "provenance": {
+        "source": "pinevoice_smartspeaker_sdk @ okay-nabu root 38f7498 (local build 2026-11-15)",
+        "yoc_rfpa_sha256": "5e682f50ca7272ee14f1b894be791381db6ef0988bd4d2db84503be2fa64f754"
+      },
+      "segments": [
+        {
+          "label": "partition-table (a)",
+          "address": "0xE000",
+          "file": "0.9.2-okay-nabu/partition.bin",
+          "sha256": "b6fba290074c9c7a009fd73870a82816303ff4d8f8fa2e16f5f289b1b2515da5",
+          "size": 272
+        },
+        {
+          "label": "partition-table (b)",
+          "address": "0xF000",
+          "file": "0.9.2-okay-nabu/partition.bin",
+          "sha256": "b6fba290074c9c7a009fd73870a82816303ff4d8f8fa2e16f5f289b1b2515da5",
+          "size": 272
+        },
+        {
+          "label": "firmware",
+          "address": "0x10000",
+          "file": "0.9.2-okay-nabu/whole_img.bin",
+          "sha256": "136fef0347f675186028ca4f55b15f36bea0062010a06faea3199441e51f64f4",
+          "size": 2177168
+        },
+        {
+          "label": "mfg",
+          "address": "0x77C000",
+          "file": "0.9.2-okay-nabu/whole_img_mfg.bin",
+          "sha256": "9212826c1ded0366309ee6c13dbac00d8d29a050502a4fff43e4435c32f734d1",
+          "size": 469040
+        },
+        {
+          "label": "media",
+          "address": "0xEE8000",
+          "file": "0.9.2-okay-nabu/media.bin",
+          "sha256": "1a5c5c8a4105e0322b23c4e0986c150cd4c70a36f45ec79ee63871ad90050bb1",
+          "size": 753664
+        }
+      ]
+    },
+    {
+      "id": "0.9.1-stock",
+      "label": "0.9.1 hey_jarvis stock (ROLLBACK) \u2014 root 9619710",
+      "version": "0.9.1 hey_jarvis stock (ROLLBACK)",
+      "provenance": {
+        "source": "pinevoice_smartspeaker_sdk @ master 9619710 (stock rebuild 2026-11-15)",
+        "yoc_rfpa_sha256": "16643ff22359f2dc21a37f7176e808fba5fecc7b0de65e7b71915fd194b19532"
+      },
+      "segments": [
+        {
+          "label": "partition-table (a)",
+          "address": "0xE000",
+          "file": "0.9.1-stock/partition.bin",
+          "sha256": "b6fba290074c9c7a009fd73870a82816303ff4d8f8fa2e16f5f289b1b2515da5",
+          "size": 272
+        },
+        {
+          "label": "partition-table (b)",
+          "address": "0xF000",
+          "file": "0.9.1-stock/partition.bin",
+          "sha256": "b6fba290074c9c7a009fd73870a82816303ff4d8f8fa2e16f5f289b1b2515da5",
+          "size": 272
+        },
+        {
+          "label": "firmware",
+          "address": "0x10000",
+          "file": "0.9.1-stock/whole_img.bin",
+          "sha256": "43502420ea28fb939d1ee3b79fed5b3b6b29321f29308665fdfd4d1fcb5170ad",
+          "size": 2177168
+        },
+        {
+          "label": "mfg",
+          "address": "0x77C000",
+          "file": "0.9.1-stock/whole_img_mfg.bin",
+          "sha256": "9212826c1ded0366309ee6c13dbac00d8d29a050502a4fff43e4435c32f734d1",
+          "size": 469040
+        },
+        {
+          "label": "media",
+          "address": "0xEE8000",
+          "file": "0.9.1-stock/media.bin",
+          "sha256": "8f61db7ead169853bf5bc7f051b2c7005c4c068d81df8b32c43ec5945a25e5e4",
+          "size": 753664
+        }
+      ]
+    }
+  ]
+}

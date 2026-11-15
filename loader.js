@@ -44,6 +44,7 @@
       return target;
     }
     for (const target of Object.values(TARGETS)) {
+      if (target.autoDetect === false) continue;
       try { target.detectVersion(bootInfo); return target; } catch (_) { /* try next target */ }
     }
     throw new Error(`不支持的 BootROM 芯片标识 0x${bytesToHex(bootInfo.slice(0, 4))}`);

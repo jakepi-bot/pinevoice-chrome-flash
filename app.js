@@ -13,6 +13,8 @@
     fileName: document.querySelector("#file-name"),
     fileMeta: document.querySelector("#file-meta"),
     chipSelect: document.querySelector("#chip-select"),
+    pvRow: document.querySelector("#pv-row"),
+    pvImageSelect: document.querySelector("#pv-image-select"),
     autoReset: document.querySelector("#auto-reset"),
     eraseAll: document.querySelector("#erase-all"),
     runAfterFlash: document.querySelector("#run-after-flash"),
@@ -25,11 +27,15 @@
     progressValue: document.querySelector("#progress-value"),
     log: document.querySelector("#log"),
     clearLogButton: document.querySelector("#clear-log"),
+    saveLogButton: document.querySelector("#save-log"),
   };
 
   let port = null;
   let transport = null;
   let image = null;
+  let manifest = null;
+  let pvImage = null;
+  let currentSegmentIndex = 0;
   let flashing = false;
   let cancelled = false;
 
@@ -242,13 +248,17 @@
     elements.disconnectButton.disabled = !connected || flashing;
     elements.fileInput.disabled = flashing;
     elements.chipSelect.disabled = flashing;
+    elements.pvImageSelect.disabled = flashing;
     elements.eraseAll.disabled = flashing;
-    elements.flashButton.disabled = !usable || !image || flashing;
+    elements.flashButton.disabled = !usable || (!image && !pvImage) || flashing;
+    elements.flashButton.textContent = pvImage ? `烧写预设 ${pvImage.id}` : "烧写 whole.bin";
     elements.cancelButton.hidden = !flashing;
   }
 
   async function chooseFile(file) {
     if (!file) return;
+    pvImage = null;
+    elements.pvImageSelect.value = "";
     const data = new Uint8Array(await file.arrayBuffer());
     if (data.length < 256) throw new Error("文件太小，不是有效的 whole.bin");
     if (String.fromCharCode(...data.slice(0, 4)) !== "BFNP") throw new Error("文件 0x0 处没有 Bouffalo Boot Header (BFNP)");
@@ -315,7 +325,67 @@
     setProgress(value, STAGE_NAMES[stage] || stage);
   }
 
+  async function flashPineVoice() {
+    const preset = pvImage;
+    if (!transport || !preset || flashing) return;
+    flashing = true;
+    cancelled = false;
+    updateControls();
+    setStatus("working", "正在烧写");
+    setProgress(1, "进入 BootROM");
+    try {
+      const total = preset.segments.length;
+      currentSegmentIndex = 0;
+      const flasher = new BflbFlasher(transport, {
+        onLog: (message, level) => {
+          log(message, level);
+          if (message.startsWith("串口使用")) setStatus("working", "正在烧写 · 2,000,000 baud");
+        },
+        onProgress: (value, stage, detail) => handleFlashProgress(((currentSegmentIndex + value / 100) / total) * 100, stage, detail),
+        isCancelled: () => cancelled,
+      });
+      const results = await PineVoiceFlash.flashSegments(flasher, preset, {
+        chip: manifest?.chip || "bl606p",
+        loadFile: async (file) => {
+          const response = await fetch(`images/${file}`);
+          if (!response.ok) throw new Error(`无法读取镜像 ${file}（HTTP ${response.status}）`);
+          return new Uint8Array(await response.arrayBuffer());
+        },
+        onSegment: (index, count, segment, phase) => {
+          if (phase === "start") {
+            currentSegmentIndex = index;
+            log(`[${index + 1}/${count}] ${segment.label} @ ${segment.address}（${formatSize(segment.size)}）`);
+          } else {
+            log(`[${index + 1}/${count}] ${segment.label} 写入并 SHA-256 校验通过`, "success");
+          }
+        },
+        autoResetFirst: elements.autoReset.checked,
+        runAfterFlash: elements.runAfterFlash.checked,
+      });
+      const seconds = (results.reduce((sum, item) => sum + item.elapsedMs, 0) / 1000).toFixed(1);
+      const first = results[0];
+      setStatus("success", `${preset.id} 烧写完成 · ${seconds} s`);
+      log(`全部 ${results.length} 段写入并校验通过，用时 ${seconds} 秒`, "success");
+      log(`BootROM 0x${bytesToHex(first.bootInfo.slice(0, 4))} · Flash 0x${bytesToHex(first.jedec.slice(0, 3))} · 配置 0x${first.flashConfig.toString(16).padStart(8, "0")} · 容量 ${formatSize(first.flashSize)}`);
+      if (!elements.runAfterFlash.checked) log("未自动运行：请断电重启设备以启动新固件", "warn");
+    } catch (error) {
+      const wasCancelled = error.name === "AbortError";
+      setStatus(wasCancelled ? "idle" : "error", wasCancelled ? "已取消" : "烧写失败");
+      elements.stageText.textContent = wasCancelled ? "操作已取消" : error.message;
+      log(error.message, wasCancelled ? "warn" : "error");
+      if (!wasCancelled) log("设备可能仍在 BootROM，修复后可直接重试；若新固件无法启动，用 0.9.1 stock 预设回滚（见 README）", "warn");
+    } finally {
+      flashing = false;
+      cancelled = false;
+      updateControls();
+    }
+  }
+
   async function flash() {
+    if (pvImage) {
+      await flashPineVoice();
+      return;
+    }
     if (!transport || !image || flashing) return;
     flashing = true;
     cancelled = false;
@@ -371,6 +441,50 @@
       elements.stageText.textContent = "正在停止";
     });
     elements.clearLogButton.addEventListener("click", () => elements.log.replaceChildren());
+    elements.saveLogButton.addEventListener("click", () => {
+      const text = [...elements.log.querySelectorAll(".log-row")].map((row) => row.textContent).join("\n");
+      const blob = new Blob([`${text}\n`], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `bflb-flash-log-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+    elements.pvImageSelect.addEventListener("change", () => {
+      const selected = manifest?.images.find((entry) => entry.id === elements.pvImageSelect.value);
+      pvImage = selected || null;
+      if (pvImage) {
+        image = null;
+        elements.fileName.textContent = pvImage.label;
+        const end = Math.max(...pvImage.segments.map((segment) => parseInt(segment.address, 16) + segment.size));
+        elements.fileMeta.textContent = `${pvImage.segments.length} 段 · 写入 0x${parseInt(pvImage.segments[0].address, 16).toString(16).toUpperCase()}–0x${(end - 1).toString(16).toUpperCase()} · 芯片 ${(manifest?.chip || "bl606p").toUpperCase()}`;
+        elements.dropZone.classList.remove("has-file");
+        setProgress(0, "预设镜像已就绪");
+        log(`已选择预设 ${pvImage.label}`);
+      } else {
+        elements.fileName.textContent = "选择或拖入 whole.bin";
+        elements.fileMeta.textContent = "whole.bin · 写入地址 0x00000000";
+      }
+      updateControls();
+    });
+    fetch("images/manifest.json")
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((data) => {
+        manifest = data;
+        for (const entry of data.images) {
+          const option = document.createElement("option");
+          option.value = entry.id;
+          option.textContent = entry.label;
+          elements.pvImageSelect.append(option);
+        }
+        log(`已载入 ${data.images.length} 个 PineVoice 预设镜像（${data.images.map((entry) => entry.id).join("、")}）`);
+      })
+      .catch(() => {
+        elements.pvRow.hidden = true;
+      });
     elements.fileInput.addEventListener("change", async () => {
       try {
         await chooseFile(elements.fileInput.files[0]);

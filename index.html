@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Bouffalo Web Flash</title>
+  <title>PineVoice Chrome Flash (bflb_flash_web)</title>
   <style>
     :root {
       font-family: Inter, "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -148,8 +148,8 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">BL</span>
-      <h1>bflb_flash_web</h1>
-      <span class="chip-label">多芯片 UART Flash</span>
+      <h1>PineVoice Chrome Flash</h1>
+      <span class="chip-label">BL606P · 基于 bflb_flash_web</span>
     </div>
     <div class="status" aria-live="polite">
       <span id="status-dot" class="status-dot" data-status="idle"></span>
@@ -166,6 +166,12 @@
       <section class="panel">
         <div class="panel-body">
           <h2 class="panel-title">固件</h2>
+          <label id="pv-row" class="setting-row">
+            <span class="setting-copy"><strong>PineVoice 预设镜像</strong><span>分段写入 0xE000–0xF9FFFF，不动 boot2 和 kv（Wi-Fi 配置）</span></span>
+            <select id="pv-image-select" class="chip-select" style="width: 240px">
+              <option value="">未选择</option>
+            </select>
+          </label>
           <label class="setting-row">
             <span class="setting-copy"><strong>芯片</strong><span>留空时由 BootROM 自动检测</span></span>
             <select id="chip-select" class="chip-select">
@@ -174,6 +180,7 @@
               <option value="bl616">BL616</option>
               <option value="bl616cl">BL616CL</option>
               <option value="bl618dg">BL618DG</option>
+              <option value="bl606p">BL606P</option>
             </select>
           </label>
           <div id="drop-zone" class="drop-zone">
@@ -230,6 +237,7 @@
               <li>按住开发板 BOOT 键。</li>
               <li>按一下 RESET 键，再松开 BOOT。</li>
               <li>点击“烧写 whole.bin”。</li>
+              <li>PineVoice：断电 → 按住中央触控环 → 重新上电（USB-C 线保持连接）。</li>
             </ol>
           </details>
         </div>
@@ -238,7 +246,10 @@
       <section class="panel log-panel">
         <div class="log-header">
           <h2 class="panel-title">日志</h2>
-          <button id="clear-log" class="clear-log" type="button">清空</button>
+          <span>
+            <button id="save-log" class="clear-log" type="button">保存日志</button>
+            <button id="clear-log" class="clear-log" type="button">清空</button>
+          </span>
         </div>
         <div id="log" class="log" role="log" aria-live="polite"></div>
       </section>
@@ -251,8 +262,10 @@
   <script src="targets/bl616.js?v=20260902-2"></script>
   <script src="targets/bl616cl.js?v=20260902-2"></script>
   <script src="targets/bl618dg.js?v=20261029-1"></script>
-  <script src="targets/index.js?v=20260902-2"></script>
-  <script src="loader.js?v=20261023-1"></script>
-  <script src="app.js?v=20261023-1"></script>
+  <script src="targets/bl606p.js?v=20261115-1"></script>
+  <script src="targets/index.js?v=20261115-1"></script>
+  <script src="loader.js?v=20261115-1"></script>
+  <script src="pvflash.js?v=20261115-1"></script>
+  <script src="app.js?v=20261115-1"></script>
 </body>
 </html>
