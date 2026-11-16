@@ -16,6 +16,7 @@
     pvRow: document.querySelector("#pv-row"),
     pvImageSelect: document.querySelector("#pv-image-select"),
     autoReset: document.querySelector("#auto-reset"),
+    openBaud: document.querySelector("#open-baud"),
     eraseAll: document.querySelector("#erase-all"),
     runAfterFlash: document.querySelector("#run-after-flash"),
     autoFlash: document.querySelector("#auto-flash"),
@@ -34,6 +35,8 @@
   let port = null;
   let lastPort = null;
   let connecting = false;
+  let openStartedAt = 0;
+  let openBaud = 0;
   let bootromLatched = false;
   let transport = null;
   let image = null;
@@ -44,8 +47,9 @@
   let cancelled = false;
 
   class SerialTransport {
-    constructor(serialPort) {
+    constructor(serialPort, baudRate = BAUD_RATE) {
       this.port = serialPort;
+      this.baudRate = baudRate;
       this.reader = null;
       this.writer = null;
       this.buffer = new Uint8Array();
@@ -56,7 +60,7 @@
 
     async open() {
       await this.port.open({
-        baudRate: BAUD_RATE,
+        baudRate: this.baudRate,
         dataBits: 8,
         stopBits: 1,
         parity: "none",
@@ -65,7 +69,6 @@
       });
       this.reader = this.port.readable.getReader();
       this.writer = this.port.writable.getWriter();
-      this.baudRate = BAUD_RATE;
       this.closed = false;
       this.readLoop = this.pump();
     }
@@ -286,6 +289,7 @@
   async function connect() {
     if (!navigator.serial || connecting || flashing) return;
     connecting = true;
+    let current = null;
     try {
       let target = null;
       const granted = await navigator.serial.getPorts();
@@ -294,15 +298,18 @@
       if (!target) target = await navigator.serial.requestPort();
       lastPort = target;
       port = target;
-      transport = new SerialTransport(port);
-      await transport.open();
+      const baudRate = Number(elements.openBaud?.value) || BAUD_RATE;
+      current = new SerialTransport(target, baudRate);
+      transport = current;
       bootromLatched = false;
-      // Leave the modem lines idle; they are only wired to BOOT/RESET on UART bridges.
-      try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (_) { /* not supported */ }
-      setStatus("connected", `Connected · ${transport.baudRate.toLocaleString()} baud`);
-      log(`Serial port connected at ${transport.baudRate} baud`);
+      openStartedAt = performance.now();
+      openBaud = baudRate;
+      const startedAt = openStartedAt;
+      await current.open();
+      setStatus("connected", `Connected · ${baudRate.toLocaleString()} baud`);
+      log(`Serial port open at ${baudRate.toLocaleString()} baud after ${Math.round(performance.now() - startedAt)} ms`);
       try {
-        await latchBootrom(transport);
+        await latchBootrom(current);
         bootromLatched = true;
         setStatus("connected", "BootROM latched · ready to flash");
       } catch (error) {
@@ -315,7 +322,7 @@
         await flash();
       }
     } catch (error) {
-      transport = null;
+      if (transport === current) transport = null;
       port = null;
       bootromLatched = false;
       if (error.name !== "NotFoundError") {
@@ -562,6 +569,10 @@
         port = null;
         bootromLatched = false;
         flashing = false;
+        if (openStartedAt) {
+          log(`Port dropped ${Math.round(performance.now() - openStartedAt)} ms after opening at ${openBaud.toLocaleString()} baud`, "warn");
+          openStartedAt = 0;
+        }
         setStatus("error", "Device disconnected");
         log("Serial device disconnected - power it on with the ring held and this page latches the BootROM again", "warn");
         updateControls();

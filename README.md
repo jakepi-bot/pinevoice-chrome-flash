@@ -146,6 +146,13 @@ watched end to end (page log + serial capture).
   event the moment the port reappears, the page opens it, sends the 0x55 sync
   immediately and (with **Flash as soon as BootROM answers** on) starts flashing
   with no clicks. Keep the ring held until the log says the handshake succeeded.
+- **The port dies within a second of opening (log: "The device has been lost")** —
+  the chip reset the moment the host opened the port. Drop **Open baud rate** to
+  115200 and retry; if it still dies at 115200 and 921600, the reset is coming from
+  the DTR line the host asserts on open, which the page cannot suppress, and the
+  only USB path left is to keep the center ring held so the reset lands back in the
+  bootloader. The log prints how many milliseconds after the open the port died,
+  which separates "reset on open" from "bootloader window expired".
 - **Port missing after a power-cycle** — the CDC device re-enumerates. A granted
   port is reopened automatically; otherwise click connect and re-pick it.
 - **SHA-256 mismatch on fetch** — the served files do not match
@@ -172,7 +179,8 @@ file upstream; used here to flash Bouffalo hardware). Changes on top:
 - `app.js` / `index.html` — preset selector, BL606P option, save-log button,
   BootROM latching on connect (0x55 sync the instant the port opens), automatic
   reconnect when a granted device re-enumerates, optional auto-flash once the
-  BootROM answers, and DTR/RTS auto-reset/run defaults turned off because the
-  PineVoice USB-C port does not expose modem control lines.
+  BootROM answers, a selectable open baud rate (115200 default, 2 Mbaud optional),
+  the drop-timing diagnostic in the log, and DTR/RTS auto-reset/run defaults turned
+  off because the PineVoice USB-C port does not expose modem control lines.
 - `images/` — the two presets + manifest + checksums.
 - `test/run.js` — mock-BootROM end-to-end test.

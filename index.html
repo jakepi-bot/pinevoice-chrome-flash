@@ -173,6 +173,14 @@
             </select>
           </label>
           <label class="setting-row">
+            <span class="setting-copy"><strong>Open baud rate</strong><span>Host rate used when the port opens; 115200 is the safe default for the PineVoice USB CDC</span></span>
+            <select id="open-baud" class="chip-select">
+              <option value="115200" selected>115200</option>
+              <option value="921600">921600</option>
+              <option value="2000000">2000000</option>
+            </select>
+          </label>
+          <label class="setting-row">
             <span class="setting-copy"><strong>Chip</strong><span>Left blank, the BootROM detects the chip automatically</span></span>
             <select id="chip-select" class="chip-select">
               <option value="">Auto-detect</option>
