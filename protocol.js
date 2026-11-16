@@ -80,12 +80,12 @@
   }
 
   function flashSizeFromJedec(jedec) {
-    if (jedec.length < 3) throw new Error("Flash JEDEC ID 长度无效");
+    if (jedec.length < 3) throw new Error("Invalid Flash JEDEC ID length");
     const capacityId = jedec[2];
     const level = [0x20, 0x21, 0x22].includes(capacityId)
       ? capacityId - 0x19
       : (capacityId & 0x1f) - 0x13;
-    if (level < 0 || level > 8) throw new Error(`无法识别 Flash 容量 ID 0x${capacityId.toString(16)}`);
+    if (level < 0 || level > 8) throw new Error(`Unrecognized Flash capacity id 0x${capacityId.toString(16)}`);
     return (2 ** level) * 512 * 1024;
   }
 

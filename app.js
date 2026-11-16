@@ -99,7 +99,7 @@
         };
         timer = setTimeout(() => {
           this.waiters.delete(wake);
-          reject(new Error("等待设备响应超时"));
+          reject(new Error("Timed out waiting for device response"));
         }, timeoutMs);
         this.waiters.add(wake);
       });
@@ -109,7 +109,7 @@
       const deadline = performance.now() + timeoutMs;
       while (this.buffer.length < length) {
         const remaining = deadline - performance.now();
-        if (remaining <= 0) throw new Error("等待设备响应超时");
+        if (remaining <= 0) throw new Error("Timed out waiting for device response");
         await this.waitForData(remaining);
       }
       const result = this.buffer.slice(0, length);
@@ -127,7 +127,7 @@
           return result;
         }
         const remaining = deadline - performance.now();
-        if (remaining <= 0) throw new Error("等待握手响应超时");
+        if (remaining <= 0) throw new Error("Timed out waiting for handshake response");
         await this.waitForData(remaining);
       }
     }
@@ -180,14 +180,14 @@
       if (text === "FL") {
         const errorBytes = await this.readExactly(2, timeoutMs);
         const code = errorBytes[0] | (errorBytes[1] << 8);
-        throw new Error(`设备返回错误 ${formatErrorCode(code)}`);
+        throw new Error(`Device returned error ${formatErrorCode(code)}`);
       }
-      throw new Error(`无效设备响应 0x${bytesToHex(ack)}`);
+      throw new Error(`Invalid device response 0x${bytesToHex(ack)}`);
     }
 
     async readResponse(timeoutMs = 3000) {
       const ack = await this.readAck(timeoutMs);
-      if (ack.status !== "OK") throw new Error(`意外设备响应 ${ack.status}`);
+      if (ack.status !== "OK") throw new Error(`Unexpected device response ${ack.status}`);
       const lengthBytes = await this.readExactly(2, timeoutMs);
       const length = lengthBytes[0] | (lengthBytes[1] << 8);
       return this.readExactly(length, timeoutMs);
@@ -198,7 +198,7 @@
       this.wakeWaiters();
       await this.releaseStreams();
       if (this.port.readable?.locked || this.port.writable?.locked) {
-        throw new Error("串口数据流仍被锁定");
+        throw new Error("Serial data stream is still locked");
       }
       if (this.port.readable || this.port.writable) await this.port.close();
     }
@@ -223,7 +223,7 @@
   function log(message, level = "info") {
     const row = document.createElement("div");
     row.className = `log-row log-${level}`;
-    const time = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    const time = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
     row.textContent = `${time}  ${message}`;
     elements.log.append(row);
     elements.log.scrollTop = elements.log.scrollHeight;
@@ -251,7 +251,7 @@
     elements.pvImageSelect.disabled = flashing;
     elements.eraseAll.disabled = flashing;
     elements.flashButton.disabled = !usable || (!image && !pvImage) || flashing;
-    elements.flashButton.textContent = pvImage ? `烧写预设 ${pvImage.id}` : "烧写 whole.bin";
+    elements.flashButton.textContent = pvImage ? `Flash preset ${pvImage.id}` : "Flash whole.bin";
     elements.cancelButton.hidden = !flashing;
   }
 
@@ -260,14 +260,14 @@
     pvImage = null;
     elements.pvImageSelect.value = "";
     const data = new Uint8Array(await file.arrayBuffer());
-    if (data.length < 256) throw new Error("文件太小，不是有效的 whole.bin");
-    if (String.fromCharCode(...data.slice(0, 4)) !== "BFNP") throw new Error("文件 0x0 处没有 Bouffalo Boot Header (BFNP)");
+    if (data.length < 256) throw new Error("File too small to be a valid whole.bin");
+    if (String.fromCharCode(...data.slice(0, 4)) !== "BFNP") throw new Error("No Bouffalo Boot Header (BFNP) at file offset 0x0");
     image = data;
     elements.fileName.textContent = file.name;
-    elements.fileMeta.textContent = `${formatSize(file.size)} · 写入地址 0x00000000`;
+    elements.fileMeta.textContent = `${formatSize(file.size)} · write address 0x00000000`;
     elements.dropZone.classList.add("has-file");
-    setProgress(0, "文件已就绪");
-    log(`已载入 ${file.name}，${file.size} 字节`);
+    setProgress(0, "File ready");
+    log(`Loaded ${file.name}, ${file.size} bytes`);
     updateControls();
   }
 
@@ -277,13 +277,13 @@
       port = await navigator.serial.requestPort();
       transport = new SerialTransport(port);
       await transport.open();
-      setStatus("connected", `已连接 · ${transport.baudRate.toLocaleString()} baud`);
-      log(`串口已连接，波特率 ${transport.baudRate}`);
+      setStatus("connected", `Connected · ${transport.baudRate.toLocaleString()} baud`);
+      log(`Serial port connected at ${transport.baudRate} baud`);
     } catch (error) {
       transport = null;
       port = null;
       if (error.name !== "NotFoundError") {
-        setStatus("error", "连接失败");
+        setStatus("error", "Connection failed");
         log(error.message, "error");
       }
     }
@@ -297,29 +297,29 @@
       await current.close();
       transport = null;
       port = null;
-      setStatus("idle", "未连接");
-      log("串口已断开");
+      setStatus("idle", "Not connected");
+      log("Serial port disconnected");
     } catch (error) {
-      log(`关闭串口失败：${error.message}`, "error");
-      setStatus("error", "断开失败，请重试");
+      log(`Failed to close serial port: ${error.message}`, "error");
+      setStatus("error", "Disconnect failed, try again");
     }
     updateControls();
   }
 
   const STAGE_NAMES = {
-    handshake: "进入 BootROM",
-    "boot-info": "读取芯片信息",
-    "flash-config": "配置 Flash",
-    erase: "擦除 Flash",
-    "erase-all": "擦除全部 Flash",
-    verify: "校验写入结果",
-    hash: "计算本地 SHA-256",
-    done: "烧写完成",
+    handshake: "Enter BootROM",
+    "boot-info": "Read chip info",
+    "flash-config": "Configure flash",
+    erase: "Erase flash",
+    "erase-all": "Erase entire flash",
+    verify: "Verify written data",
+    hash: "Compute local SHA-256",
+    done: "Flash complete",
   };
 
   function handleFlashProgress(value, stage, detail) {
     if (stage === "write" && detail) {
-      setProgress(value, `写入 ${formatSize(detail.written)} / ${formatSize(detail.total)}`);
+      setProgress(value, `Wrote ${formatSize(detail.written)} / ${formatSize(detail.total)}`);
       return;
     }
     setProgress(value, STAGE_NAMES[stage] || stage);
@@ -331,15 +331,15 @@
     flashing = true;
     cancelled = false;
     updateControls();
-    setStatus("working", "正在烧写");
-    setProgress(1, "进入 BootROM");
+    setStatus("working", "Flashing");
+    setProgress(1, "Enter BootROM");
     try {
       const total = preset.segments.length;
       currentSegmentIndex = 0;
       const flasher = new BflbFlasher(transport, {
         onLog: (message, level) => {
           log(message, level);
-          if (message.startsWith("串口使用")) setStatus("working", "正在烧写 · 2,000,000 baud");
+          if (message.startsWith("Serial port at")) setStatus("working", "Flashing · 2,000,000 baud");
         },
         onProgress: (value, stage, detail) => handleFlashProgress(((currentSegmentIndex + value / 100) / total) * 100, stage, detail),
         isCancelled: () => cancelled,
@@ -348,7 +348,7 @@
         chip: manifest?.chip || "bl606p",
         loadFile: async (file) => {
           const response = await fetch(`images/${file}`);
-          if (!response.ok) throw new Error(`无法读取镜像 ${file}（HTTP ${response.status}）`);
+          if (!response.ok) throw new Error(`Could not read image ${file} (HTTP ${response.status})`);
           return new Uint8Array(await response.arrayBuffer());
         },
         onSegment: (index, count, segment, phase) => {
@@ -356,7 +356,7 @@
             currentSegmentIndex = index;
             log(`[${index + 1}/${count}] ${segment.label} @ ${segment.address}（${formatSize(segment.size)}）`);
           } else {
-            log(`[${index + 1}/${count}] ${segment.label} 写入并 SHA-256 校验通过`, "success");
+            log(`[${index + 1}/${count}] ${segment.label} written and SHA-256 verified`, "success");
           }
         },
         autoResetFirst: elements.autoReset.checked,
@@ -364,16 +364,16 @@
       });
       const seconds = (results.reduce((sum, item) => sum + item.elapsedMs, 0) / 1000).toFixed(1);
       const first = results[0];
-      setStatus("success", `${preset.id} 烧写完成 · ${seconds} s`);
-      log(`全部 ${results.length} 段写入并校验通过，用时 ${seconds} 秒`, "success");
-      log(`BootROM 0x${bytesToHex(first.bootInfo.slice(0, 4))} · Flash 0x${bytesToHex(first.jedec.slice(0, 3))} · 配置 0x${first.flashConfig.toString(16).padStart(8, "0")} · 容量 ${formatSize(first.flashSize)}`);
-      if (!elements.runAfterFlash.checked) log("未自动运行：请断电重启设备以启动新固件", "warn");
+      setStatus("success", `${preset.id} flash complete · ${seconds} s`);
+      log(`All ${results.length} segments written and verified in ${seconds} s`, "success");
+      log(`BootROM 0x${bytesToHex(first.bootInfo.slice(0, 4))} · Flash 0x${bytesToHex(first.jedec.slice(0, 3))} · config 0x${first.flashConfig.toString(16).padStart(8, "0")} · size ${formatSize(first.flashSize)}`);
+      if (!elements.runAfterFlash.checked) log("Not started automatically: power-cycle the device to boot the new firmware", "warn");
     } catch (error) {
       const wasCancelled = error.name === "AbortError";
-      setStatus(wasCancelled ? "idle" : "error", wasCancelled ? "已取消" : "烧写失败");
-      elements.stageText.textContent = wasCancelled ? "操作已取消" : error.message;
+      setStatus(wasCancelled ? "idle" : "error", wasCancelled ? "Cancelled" : "Flash failed");
+      elements.stageText.textContent = wasCancelled ? "Operation cancelled" : error.message;
       log(error.message, wasCancelled ? "warn" : "error");
-      if (!wasCancelled) log("设备可能仍在 BootROM，修复后可直接重试；若新固件无法启动，用 0.9.1 stock 预设回滚（见 README）", "warn");
+      if (!wasCancelled) log("The device may still be in BootROM - fix the issue and retry directly. If the new firmware does not boot, roll back with the 0.9.1 stock preset (see README)", "warn");
     } finally {
       flashing = false;
       cancelled = false;
@@ -390,13 +390,13 @@
     flashing = true;
     cancelled = false;
     updateControls();
-    setStatus("working", "正在烧写");
-    setProgress(1, "进入 BootROM");
+    setStatus("working", "Flashing");
+    setProgress(1, "Enter BootROM");
     try {
       const flasher = new BflbFlasher(transport, {
         onLog: (message, level) => {
           log(message, level);
-          if (message.startsWith("串口使用")) setStatus("working", "正在烧写 · 2,000,000 baud");
+          if (message.startsWith("Serial port at")) setStatus("working", "Flashing · 2,000,000 baud");
         },
         onProgress: handleFlashProgress,
         isCancelled: () => cancelled,
@@ -408,12 +408,12 @@
         runAfterFlash: elements.runAfterFlash.checked,
       });
       const seconds = (result.elapsedMs / 1000).toFixed(1);
-      setStatus("success", `${result.chip.toUpperCase()} 烧写完成 · ${seconds} s`);
-      log(`烧写和校验完成，用时 ${seconds} 秒`, "success");
+      setStatus("success", `${result.chip.toUpperCase()} flash complete · ${seconds} s`);
+      log(`Flash and verification complete in ${seconds} s`, "success");
     } catch (error) {
       const wasCancelled = error.name === "AbortError";
-      setStatus(wasCancelled ? "idle" : "error", wasCancelled ? "已取消" : "烧写失败");
-      elements.stageText.textContent = wasCancelled ? "操作已取消" : error.message;
+      setStatus(wasCancelled ? "idle" : "error", wasCancelled ? "Cancelled" : "Flash failed");
+      elements.stageText.textContent = wasCancelled ? "Operation cancelled" : error.message;
       log(error.message, wasCancelled ? "warn" : "error");
     } finally {
       flashing = false;
@@ -426,19 +426,19 @@
     if (!navigator.serial) {
       elements.supportNotice.hidden = false;
       elements.connectButton.disabled = true;
-      setStatus("error", "浏览器不支持 Web Serial");
+      setStatus("error", "Browser does not support Web Serial");
     }
 
     elements.connectButton.addEventListener("click", connect);
     elements.disconnectButton.addEventListener("click", disconnect);
     elements.flashButton.addEventListener("click", flash);
     elements.chipSelect.addEventListener("change", () => {
-      if (image) elements.fileMeta.textContent = `${formatSize(image.length)} · ${elements.chipSelect.value ? elements.chipSelect.value.toUpperCase() : "自动检测"} · 写入地址 0x00000000`;
+      if (image) elements.fileMeta.textContent = `${formatSize(image.length)} · ${elements.chipSelect.value ? elements.chipSelect.value.toUpperCase() : "Auto-detect"} · write address 0x00000000`;
     });
     elements.cancelButton.addEventListener("click", () => {
       cancelled = true;
       elements.cancelButton.disabled = true;
-      elements.stageText.textContent = "正在停止";
+      elements.stageText.textContent = "Stopping";
     });
     elements.clearLogButton.addEventListener("click", () => elements.log.replaceChildren());
     elements.saveLogButton.addEventListener("click", () => {
@@ -457,13 +457,13 @@
         image = null;
         elements.fileName.textContent = pvImage.label;
         const end = Math.max(...pvImage.segments.map((segment) => parseInt(segment.address, 16) + segment.size));
-        elements.fileMeta.textContent = `${pvImage.segments.length} 段 · 写入 0x${parseInt(pvImage.segments[0].address, 16).toString(16).toUpperCase()}–0x${(end - 1).toString(16).toUpperCase()} · 芯片 ${(manifest?.chip || "bl606p").toUpperCase()}`;
+        elements.fileMeta.textContent = `${pvImage.segments.length} segments · writes 0x${parseInt(pvImage.segments[0].address, 16).toString(16).toUpperCase()}–0x${(end - 1).toString(16).toUpperCase()} · chip ${(manifest?.chip || "bl606p").toUpperCase()}`;
         elements.dropZone.classList.remove("has-file");
-        setProgress(0, "预设镜像已就绪");
-        log(`已选择预设 ${pvImage.label}`);
+        setProgress(0, "Preset image ready");
+        log(`Selected preset ${pvImage.label}`);
       } else {
-        elements.fileName.textContent = "选择或拖入 whole.bin";
-        elements.fileMeta.textContent = "whole.bin · 写入地址 0x00000000";
+        elements.fileName.textContent = "Select or drop whole.bin";
+        elements.fileMeta.textContent = "whole.bin · write address 0x00000000";
       }
       updateControls();
     });
@@ -480,7 +480,7 @@
           option.textContent = entry.label;
           elements.pvImageSelect.append(option);
         }
-        log(`已载入 ${data.images.length} 个 PineVoice 预设镜像（${data.images.map((entry) => entry.id).join("、")}）`);
+        log(`Loaded ${data.images.length} PineVoice preset images (${data.images.map((entry) => entry.id).join(", ")})`);
       })
       .catch(() => {
         elements.pvRow.hidden = true;
@@ -511,8 +511,8 @@
         transport = null;
         port = null;
         flashing = false;
-        setStatus("error", "设备已断开");
-        log("串口设备已断开", "error");
+        setStatus("error", "Device disconnected");
+        log("Serial device disconnected", "error");
         updateControls();
       }
     });

@@ -14,11 +14,11 @@
   function detectVersion(bootInfo) {
     const id = bytesToHex(bootInfo.slice(0, 4));
     const version = VERSION_IDS[id];
-    if (!version) throw new Error(`不支持的 BL616CL BootROM，芯片标识为 0x${id || "????????"}`);
+    if (!version) throw new Error(`Unsupported BL616CL BootROM, chip id 0x${id || "????????"}`);
     return version;
   }
   function flashPinFromBootInfo(bootInfo) {
-    if (bootInfo.length < 24) throw new Error("BL616CL BootInfo 长度无效");
+    if (bootInfo.length < 24) throw new Error("Invalid BL616CL BootInfo length");
     const usage = new DataView(bootInfo.buffer, bootInfo.byteOffset + 20, 4).getUint32(0, true);
     return (usage >>> 5) & 0x3f;
   }

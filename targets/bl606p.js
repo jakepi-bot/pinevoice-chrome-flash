@@ -26,7 +26,7 @@
   // boot info when BL606P is selected explicitly. autoDetect keeps this target
   // out of the auto-probe loop so the permissive matcher cannot hijack detection.
   function detectVersion(bootInfo) {
-    if (!bootInfo || bootInfo.length < 12) throw new Error("BL606P BootInfo 长度无效");
+    if (!bootInfo || bootInfo.length < 12) throw new Error("Invalid BL606P BootInfo length");
     return "brom";
   }
 

@@ -17,7 +17,7 @@
   function detectVersion(bootInfo) {
     const id = bytesToHex(bootInfo.slice(0, 4));
     const version = VERSION_IDS[id];
-    if (!version) throw new Error(`不支持的 BL602 BootROM，芯片标识为 0x${id || "????????"}`);
+    if (!version) throw new Error(`Unsupported BL602 BootROM, chip id 0x${id || "????????"}`);
     return version;
   }
   function bytesToHex(bytes) { return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(""); }

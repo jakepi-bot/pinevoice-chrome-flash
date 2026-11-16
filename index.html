@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -149,33 +149,33 @@
     <div class="brand">
       <span class="brand-mark">BL</span>
       <h1>PineVoice Chrome Flash</h1>
-      <span class="chip-label">BL606P · 基于 bflb_flash_web</span>
+      <span class="chip-label">BL606P · based on bflb_flash_web</span>
     </div>
     <div class="status" aria-live="polite">
       <span id="status-dot" class="status-dot" data-status="idle"></span>
-      <span id="status-text">未连接</span>
+      <span id="status-text">Not connected</span>
     </div>
   </header>
 
   <main>
     <div id="support-notice" class="support-notice" hidden>
-      当前浏览器不支持 Web Serial，请使用桌面版 Chrome 或 Edge，并通过 localhost 或 HTTPS 打开本页。
+      This browser does not support Web Serial. Use desktop Chrome or Edge and open this page over localhost or HTTPS.
     </div>
 
     <div class="workspace">
       <section class="panel">
         <div class="panel-body">
-          <h2 class="panel-title">固件</h2>
+          <h2 class="panel-title">Firmware</h2>
           <label id="pv-row" class="setting-row">
-            <span class="setting-copy"><strong>PineVoice 预设镜像</strong><span>分段写入 0xE000–0xF9FFFF，不动 boot2 和 kv（Wi-Fi 配置）</span></span>
+            <span class="setting-copy"><strong>PineVoice preset image</strong><span>Writes segments in 0xE000–0xF9FFFF; boot2 and kv (Wi-Fi config) stay untouched</span></span>
             <select id="pv-image-select" class="chip-select" style="width: 240px">
-              <option value="">未选择</option>
+              <option value="">None selected</option>
             </select>
           </label>
           <label class="setting-row">
-            <span class="setting-copy"><strong>芯片</strong><span>留空时由 BootROM 自动检测</span></span>
+            <span class="setting-copy"><strong>Chip</strong><span>Left blank, the BootROM detects the chip automatically</span></span>
             <select id="chip-select" class="chip-select">
-              <option value="">自动检测</option>
+              <option value="">Auto-detect</option>
               <option value="bl602">BL602</option>
               <option value="bl616">BL616</option>
               <option value="bl616cl">BL616CL</option>
@@ -187,22 +187,22 @@
             <input id="bin-file" class="file-input" type="file" accept=".bin,application/octet-stream">
             <div>
               <div class="file-symbol">BIN</div>
-              <p id="file-name" class="file-name">选择或拖入 whole.bin</p>
-              <p id="file-meta" class="file-meta">whole.bin · 写入地址 0x00000000</p>
+              <p id="file-name" class="file-name">Select or drop whole.bin</p>
+              <p id="file-meta" class="file-meta">whole.bin · write address 0x00000000</p>
             </div>
           </div>
 
           <div class="settings">
             <label class="setting-row">
-              <span class="setting-copy"><strong>自动进入 BootROM</strong><span>DTR / RTS 控制 BOOT 和 RESET</span></span>
+              <span class="setting-copy"><strong>Auto-enter BootROM</strong><span>DTR / RTS control BOOT and RESET</span></span>
               <span class="switch"><input id="auto-reset" type="checkbox" checked><span class="switch-track"></span></span>
             </label>
             <label class="setting-row">
-              <span class="setting-copy"><strong>Erase 全部 Flash</strong><span>烧写前擦除整个 Flash，清除所有已有数据</span></span>
+              <span class="setting-copy"><strong>Erase entire flash</strong><span>Erase the entire flash before writing, clearing all existing data</span></span>
               <span class="switch"><input id="erase-all" type="checkbox"><span class="switch-track"></span></span>
             </label>
             <label class="setting-row">
-              <span class="setting-copy"><strong>完成后通过 RTS 运行</strong><span>校验通过后使用 RTS/DTR 复位芯片</span></span>
+              <span class="setting-copy"><strong>Run via RTS when done</strong><span>Reset the chip over RTS/DTR after verification passes</span></span>
               <span class="switch"><input id="run-after-flash" type="checkbox" checked><span class="switch-track"></span></span>
             </label>
           </div>
@@ -211,33 +211,33 @@
 
       <section class="panel">
         <div class="panel-body">
-          <h2 class="panel-title">设备</h2>
+          <h2 class="panel-title">Device</h2>
           <div class="serial-actions">
-            <button id="connect-button" class="button button-primary" type="button">连接串口</button>
-            <button id="disconnect-button" class="button" type="button" disabled>断开</button>
+            <button id="connect-button" class="button button-primary" type="button">Connect serial port</button>
+            <button id="disconnect-button" class="button" type="button" disabled>Disconnect</button>
           </div>
 
           <div class="progress-wrap" aria-live="polite">
             <div class="progress-heading">
-              <span id="stage-text" class="stage-text">等待连接和固件</span>
+              <span id="stage-text" class="stage-text">Waiting for connection and firmware</span>
               <span id="progress-value" class="progress-value">0%</span>
             </div>
             <progress id="progress-bar" max="100" value="0">0%</progress>
           </div>
 
           <div class="actions">
-            <button id="flash-button" class="button button-primary" type="button" disabled>烧写 whole.bin</button>
-            <button id="cancel-button" class="button button-danger" type="button" hidden>停止</button>
+            <button id="flash-button" class="button button-primary" type="button" disabled>Flash whole.bin</button>
+            <button id="cancel-button" class="button button-danger" type="button" hidden>Stop</button>
           </div>
 
           <details class="manual">
-            <summary>手动进入 BootROM</summary>
+            <summary>Enter BootROM manually</summary>
             <ol>
-              <li>关闭“自动进入 BootROM”。</li>
-              <li>按住开发板 BOOT 键。</li>
-              <li>按一下 RESET 键，再松开 BOOT。</li>
-              <li>点击“烧写 whole.bin”。</li>
-              <li>PineVoice：断电 → 按住中央触控环 → 重新上电（USB-C 线保持连接）。</li>
+              <li>Turn off “Auto-enter BootROM”.</li>
+              <li>Hold the board's BOOT button.</li>
+              <li>Tap RESET, then release BOOT.</li>
+              <li>Click “Flash whole.bin”.</li>
+              <li>PineVoice: power off → hold the center touch ring → power on (keep the USB-C cable connected).</li>
             </ol>
           </details>
         </div>
@@ -245,10 +245,10 @@
 
       <section class="panel log-panel">
         <div class="log-header">
-          <h2 class="panel-title">日志</h2>
+          <h2 class="panel-title">Log</h2>
           <span>
-            <button id="save-log" class="clear-log" type="button">保存日志</button>
-            <button id="clear-log" class="clear-log" type="button">清空</button>
+            <button id="save-log" class="clear-log" type="button">Save log</button>
+            <button id="clear-log" class="clear-log" type="button">Clear</button>
           </span>
         </div>
         <div id="log" class="log" role="log" aria-live="polite"></div>

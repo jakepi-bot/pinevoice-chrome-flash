@@ -113,7 +113,7 @@ class MockBrom {
       await this.waitForBytes(4, timeoutMs, "error code");
       const code = this.rx[2] | (this.rx[3] << 8);
       this.rx.splice(0, 4);
-      throw new Error(`设备返回错误 0x${code.toString(16).padStart(4, "0")}`);
+      throw new Error(`Device returned error 0x${code.toString(16).padStart(4, "0")}`);
     }
     const raw = this.rx.splice(0, 2);
     throw new Error(`MockBrom: invalid ack 0x${raw.map((b) => b.toString(16).padStart(2, "0")).join("")}`);
@@ -314,7 +314,7 @@ async function testCorruptedImageRejected() {
       runAfterFlash: false,
       onSegment: () => {},
     }),
-    /SHA-256 不匹配/,
+    /SHA-256 mismatch/,
     "corrupted manifest entry must be rejected before flashing",
   );
   assert.strictEqual(mock.commands.length, 0, "no flash commands issued for a corrupted image");

@@ -17,7 +17,7 @@
       const nodeCrypto = require("node:crypto");
       digest = new Uint8Array(nodeCrypto.createHash("sha256").update(data).digest());
     } else {
-      if (!globalThis.crypto?.subtle) throw new Error("当前环境不支持 SHA-256");
+      if (!globalThis.crypto?.subtle) throw new Error("This environment does not support SHA-256");
       digest = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", data));
     }
     return Array.from(digest, (value) => value.toString(16).padStart(2, "0")).join("");
@@ -25,7 +25,7 @@
 
   async function flashSegments(flasher, image, options) {
     if (!image || !Array.isArray(image.segments) || !image.segments.length) {
-      throw new Error("预设镜像没有可写的段");
+      throw new Error("Preset image has no writable segments");
     }
     const total = image.segments.length;
     const results = [];
@@ -40,11 +40,11 @@
         cache.set(segment.file, data);
       }
       if (data.length !== segment.size) {
-        throw new Error(`镜像 ${segment.file} 大小不符：实际 ${data.length}，清单 ${segment.size}`);
+        throw new Error(`Image ${segment.file} size mismatch: actual ${data.length}, manifest ${segment.size}`);
       }
       const localSha = await sha256Hex(data);
       if (localSha !== String(segment.sha256).toLowerCase()) {
-        throw new Error(`镜像 ${segment.file} SHA-256 不匹配：实际 ${localSha}，清单 ${segment.sha256}`);
+        throw new Error(`Image ${segment.file} SHA-256 mismatch: actual ${localSha}, manifest ${segment.sha256}`);
       }
       const result = await flasher.flash(data, {
         chip: options.chip,

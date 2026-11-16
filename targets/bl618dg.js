@@ -23,12 +23,12 @@
   function detectVersion(bootInfo) {
     const id = bytesToHex(bootInfo.slice(0, 4));
     const version = VERSION_IDS[id];
-    if (!version) throw new Error(`不支持的 BL618DG BootROM，芯片标识为 0x${id || "????????"}`);
+    if (!version) throw new Error(`Unsupported BL618DG BootROM, chip id 0x${id || "????????"}`);
     return version;
   }
 
   function flashPinFromBootInfo(bootInfo) {
-    if (bootInfo.length < 12) throw new Error("BL618DG BootInfo 长度无效");
+    if (bootInfo.length < 12) throw new Error("Invalid BL618DG BootInfo length");
     const swUsage = new DataView(bootInfo.buffer, bootInfo.byteOffset + 8, 4).getUint32(0, true);
     return (swUsage >>> 14) & 0x3f;
   }

@@ -33,17 +33,17 @@ BL602/BL616/BL616CL/BL618DG is unchanged.
    DTR/RTS auto-reset first — if the handshake fails, do the manual
    power-cycle above and click connect again.)
 
-4. Click **连接设备** and pick the PineVoice serial port (a CDC/ACM device).
+4. Click **Connect serial port** and pick the PineVoice serial port (a CDC/ACM device).
 
-5. In **固件**, pick the image in **PineVoice 预设镜像**:
+5. In **Firmware**, pick the image in **PineVoice preset image**:
    - `0.9.2-okay-nabu` — the new firmware (okay nabu wake word),
    - `0.9.1-stock` — the stock rollback image.
 
-6. Click **烧写预设 …** and wait. The page fetches each segment, checks its
+6. Click **Flash preset …** and wait. The page fetches each segment, checks its
    SHA-256 against `images/manifest.json`, erases/writes/verifies it, and
-   reports success per segment. Use **保存日志** to save the log as evidence.
+   reports success per segment. Use **Save log** to save the log as evidence.
 
-7. When it finishes (and **完成后通过 RTS 运行** is checked) the device resets
+7. When it finishes (and **Run via RTS when done** is checked) the device resets
    into the new firmware. If that checkbox was off, power-cycle it manually.
 
 ### If the flash fails
@@ -136,7 +136,7 @@ watched end to end (page log + serial capture).
 
 ## Troubleshooting
 
-- **Handshake fails / "BootROM 响应超时"** — device is not in the ROM
+- **Handshake fails / "Timed out waiting for device response"** — device is not in the ROM
   bootloader (still running its app) or the cable dropped. Redo the
   power-cycle-into-bootloader dance, keep the cable attached, reconnect.
 - **Port missing after a power-cycle** — the CDC device re-enumerates; click
@@ -146,7 +146,7 @@ watched end to end (page log + serial capture).
 - **Erase/write error codes** (`0x0003`, `0x0006`, …) — retry once; if it
   repeats, re-enter the bootloader and retry. Do not power-cycle mid-write
   unless the port is stuck.
-- The log panel records every protocol step; keep it (**保存日志**) for any
+- The log panel records every protocol step; keep it (**Save log**) for any
   failure report.
 
 ## Upstream and changes
