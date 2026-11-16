@@ -194,16 +194,20 @@
 
           <div class="settings">
             <label class="setting-row">
-              <span class="setting-copy"><strong>Auto-enter BootROM</strong><span>DTR / RTS control BOOT and RESET</span></span>
-              <span class="switch"><input id="auto-reset" type="checkbox" checked><span class="switch-track"></span></span>
+              <span class="setting-copy"><strong>Auto-enter BootROM</strong><span>DTR / RTS control BOOT and RESET (UART bridges only, not the PineVoice USB-C port)</span></span>
+              <span class="switch"><input id="auto-reset" type="checkbox"><span class="switch-track"></span></span>
+            </label>
+            <label class="setting-row">
+              <span class="setting-copy"><strong>Flash as soon as BootROM answers</strong><span>Latch the bootloader on connect and start flashing with no extra click</span></span>
+              <span class="switch"><input id="auto-flash" type="checkbox" checked><span class="switch-track"></span></span>
             </label>
             <label class="setting-row">
               <span class="setting-copy"><strong>Erase entire flash</strong><span>Erase the entire flash before writing, clearing all existing data</span></span>
               <span class="switch"><input id="erase-all" type="checkbox"><span class="switch-track"></span></span>
             </label>
             <label class="setting-row">
-              <span class="setting-copy"><strong>Run via RTS when done</strong><span>Reset the chip over RTS/DTR after verification passes</span></span>
-              <span class="switch"><input id="run-after-flash" type="checkbox" checked><span class="switch-track"></span></span>
+              <span class="setting-copy"><strong>Run via RTS when done</strong><span>Reset the chip over RTS/DTR after verification passes (UART bridges only)</span></span>
+              <span class="switch"><input id="run-after-flash" type="checkbox"><span class="switch-track"></span></span>
             </label>
           </div>
         </div>
@@ -233,11 +237,10 @@
           <details class="manual">
             <summary>Enter BootROM manually</summary>
             <ol>
-              <li>Turn off “Auto-enter BootROM”.</li>
-              <li>Hold the board's BOOT button.</li>
-              <li>Tap RESET, then release BOOT.</li>
-              <li>Click “Flash whole.bin”.</li>
+              <li>Click “Connect serial port” and pick the device once, so the page is allowed to reopen it.</li>
               <li>PineVoice: power off → hold the center touch ring → power on (keep the USB-C cable connected).</li>
+              <li>The BootROM window is only a few seconds: the page reconnects and latches it the moment the port appears. Keep the ring held until “BootROM latched” shows in the log.</li>
+              <li>If it still misses, click “Connect serial port” again and power-cycle with the ring held.</li>
             </ol>
           </details>
         </div>

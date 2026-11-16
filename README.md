@@ -136,11 +136,18 @@ watched end to end (page log + serial capture).
 
 ## Troubleshooting
 
-- **Handshake fails / "Timed out waiting for device response"** — device is not in the ROM
-  bootloader (still running its app) or the cable dropped. Redo the
-  power-cycle-into-bootloader dance, keep the cable attached, reconnect.
-- **Port missing after a power-cycle** — the CDC device re-enumerates; click
-  connect again and re-pick it.
+- **Device reboots and vanishes right after you pick it in the port chooser** — the
+  BL606P ROM bootloader only listens for its sync burst for a few seconds after
+  reset (the SDK says "the bootloader timeout is short, so act quickly"). A human
+  running the chooser and then clicking Flash is slower than that window, so the
+  chip falls through, boots its app, and the CDC port disappears. The page now
+  latches the BootROM itself: grant the port once with **Connect serial port**,
+  then power the PineVoice on with the center ring held. Chrome fires a `connect`
+  event the moment the port reappears, the page opens it, sends the 0x55 sync
+  immediately and (with **Flash as soon as BootROM answers** on) starts flashing
+  with no clicks. Keep the ring held until the log says the handshake succeeded.
+- **Port missing after a power-cycle** — the CDC device re-enumerates. A granted
+  port is reopened automatically; otherwise click connect and re-pick it.
 - **SHA-256 mismatch on fetch** — the served files do not match
   `images/manifest.json`; re-clone, do not edit image files by hand.
 - **Erase/write error codes** (`0x0003`, `0x0006`, …) — retry once; if it
@@ -162,6 +169,10 @@ file upstream; used here to flash Bouffalo hardware). Changes on top:
   validate the BL606P boot-info id either, so detection is permissive).
 - `loader.js` — skip `autoDetect: false` targets during auto-probe.
 - `pvflash.js` — preset segment loop (fetch → SHA-256 → flash per address).
-- `app.js` / `index.html` — preset selector, BL606P option, save-log button.
+- `app.js` / `index.html` — preset selector, BL606P option, save-log button,
+  BootROM latching on connect (0x55 sync the instant the port opens), automatic
+  reconnect when a granted device re-enumerates, optional auto-flash once the
+  BootROM answers, and DTR/RTS auto-reset/run defaults turned off because the
+  PineVoice USB-C port does not expose modem control lines.
 - `images/` — the two presets + manifest + checksums.
 - `test/run.js` — mock-BootROM end-to-end test.

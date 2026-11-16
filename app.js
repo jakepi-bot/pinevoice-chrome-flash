@@ -18,6 +18,7 @@
     autoReset: document.querySelector("#auto-reset"),
     eraseAll: document.querySelector("#erase-all"),
     runAfterFlash: document.querySelector("#run-after-flash"),
+    autoFlash: document.querySelector("#auto-flash"),
     flashButton: document.querySelector("#flash-button"),
     cancelButton: document.querySelector("#cancel-button"),
     statusDot: document.querySelector("#status-dot"),
@@ -31,6 +32,9 @@
   };
 
   let port = null;
+  let lastPort = null;
+  let connecting = false;
+  let bootromLatched = false;
   let transport = null;
   let image = null;
   let manifest = null;
@@ -271,23 +275,57 @@
     updateControls();
   }
 
+  // Send the BootROM sync burst straight after the port opens. The BL606P
+  // bootloader only listens for a short window after reset, so the host has to
+  // start talking immediately instead of waiting for a human to click Flash.
+  async function latchBootrom(current) {
+    const flasher = new BflbFlasher(current, { onLog: (message, level) => log(message, level) });
+    await flasher.handshake(false, 4, 6);
+  }
+
   async function connect() {
-    if (!navigator.serial) return;
+    if (!navigator.serial || connecting || flashing) return;
+    connecting = true;
     try {
-      port = await navigator.serial.requestPort();
+      let target = null;
+      const granted = await navigator.serial.getPorts();
+      if (lastPort && granted.includes(lastPort)) target = lastPort;
+      else if (granted.length === 1) target = granted[0];
+      if (!target) target = await navigator.serial.requestPort();
+      lastPort = target;
+      port = target;
       transport = new SerialTransport(port);
       await transport.open();
+      bootromLatched = false;
+      // Leave the modem lines idle; they are only wired to BOOT/RESET on UART bridges.
+      try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (_) { /* not supported */ }
       setStatus("connected", `Connected · ${transport.baudRate.toLocaleString()} baud`);
       log(`Serial port connected at ${transport.baudRate} baud`);
+      try {
+        await latchBootrom(transport);
+        bootromLatched = true;
+        setStatus("connected", "BootROM latched · ready to flash");
+      } catch (error) {
+        log(error.message, "warn");
+        log("BootROM did not answer. Power the PineVoice on with the center ring held; this page reconnects and latches it automatically.", "warn");
+      }
+      updateControls();
+      if (bootromLatched && elements.autoFlash?.checked && (pvImage || image)) {
+        log("Auto-flash enabled - starting the flash now");
+        await flash();
+      }
     } catch (error) {
       transport = null;
       port = null;
+      bootromLatched = false;
       if (error.name !== "NotFoundError") {
         setStatus("error", "Connection failed");
         log(error.message, "error");
       }
+      updateControls();
+    } finally {
+      connecting = false;
     }
-    updateControls();
   }
 
   async function disconnect() {
@@ -297,6 +335,8 @@
       await current.close();
       transport = null;
       port = null;
+      lastPort = null;
+      bootromLatched = false;
       setStatus("idle", "Not connected");
       log("Serial port disconnected");
     } catch (error) {
@@ -359,12 +399,17 @@
             log(`[${index + 1}/${count}] ${segment.label} written and SHA-256 verified`, "success");
           }
         },
-        autoResetFirst: elements.autoReset.checked,
+        autoResetFirst: elements.autoReset.checked && !bootromLatched,
         runAfterFlash: elements.runAfterFlash.checked,
       });
       const seconds = (results.reduce((sum, item) => sum + item.elapsedMs, 0) / 1000).toFixed(1);
       const first = results[0];
       setStatus("success", `${preset.id} flash complete · ${seconds} s`);
+      bootromLatched = false;
+      if (elements.autoFlash?.checked) {
+        elements.autoFlash.checked = false;
+        log("Auto-flash switched off so a later power-cycle cannot reflash by accident", "warn");
+      }
       log(`All ${results.length} segments written and verified in ${seconds} s`, "success");
       log(`BootROM 0x${bytesToHex(first.bootInfo.slice(0, 4))} · Flash 0x${bytesToHex(first.jedec.slice(0, 3))} · config 0x${first.flashConfig.toString(16).padStart(8, "0")} · size ${formatSize(first.flashSize)}`);
       if (!elements.runAfterFlash.checked) log("Not started automatically: power-cycle the device to boot the new firmware", "warn");
@@ -403,12 +448,17 @@
       });
       const result = await flasher.flashWhole(image, {
         chip: elements.chipSelect.value || undefined,
-        autoReset: elements.autoReset.checked,
+        autoReset: elements.autoReset.checked && !bootromLatched,
         eraseAll: elements.eraseAll.checked,
         runAfterFlash: elements.runAfterFlash.checked,
       });
       const seconds = (result.elapsedMs / 1000).toFixed(1);
       setStatus("success", `${result.chip.toUpperCase()} flash complete · ${seconds} s`);
+      bootromLatched = false;
+      if (elements.autoFlash?.checked) {
+        elements.autoFlash.checked = false;
+        log("Auto-flash switched off so a later power-cycle cannot reflash by accident", "warn");
+      }
       log(`Flash and verification complete in ${seconds} s`, "success");
     } catch (error) {
       const wasCancelled = error.name === "AbortError";
@@ -510,11 +560,20 @@
       if (event.target === port) {
         transport = null;
         port = null;
+        bootromLatched = false;
         flashing = false;
         setStatus("error", "Device disconnected");
-        log("Serial device disconnected", "error");
+        log("Serial device disconnected - power it on with the ring held and this page latches the BootROM again", "warn");
         updateControls();
       }
+    });
+    // Chrome fires this for the port once it has been granted, so a power-cycle
+    // into BootROM is picked up without touching the page.
+    navigator.serial?.addEventListener("connect", (event) => {
+      if (event.target !== lastPort) return;
+      if (transport && !transport.closed) return;
+      log("Device appeared on USB - connecting and latching BootROM");
+      connect();
     });
     updateControls();
   }
