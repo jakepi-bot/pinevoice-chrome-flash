@@ -134,6 +134,23 @@ file/address write list.
 **Not yet verified:** a run against real hardware. First hardware run should be
 watched end to end (page log + serial capture).
 
+## Hardware note: the shipping board cannot enter the BootROM
+
+The BL606P only enters download mode when `GPIO39` (BOOT) is high at reset
+(datasheet table 2.3). On the shipping PineVoice main board that net reaches
+only test point **TP1** and a 33K pull-down: the BOOT switch (SW5) is routed to
+**GPIO24** by `R45 = 0R`, while `R47 = NM` (the variant that would route the same
+button to BOOT) is not fitted. Pine64's "hold the centre ring at power-on"
+procedure therefore assumes the development stuffing option, not the board that
+ships. With `GPIO39` low at every boot the BootROM never runs, the firmware's USB
+endpoint is the only thing on the bus, and it does not answer the loader
+handshake - no host-side tool can flash such a unit.
+
+To make it flashable, populate `R47` with a 0R link (or a wire) and keep `R45`:
+the centre/user button then pulls BOOT high as well, so holding it at power-on
+enters the BootROM. Restore the stock `chips/bl606p/eflash_loader/eflash_loader_cfg.ini`
+(`do_reset = true`, `cutoff_time = 50`) and flash at 2 Mbaud once it does.
+
 ## Troubleshooting
 
 - **Device reboots and vanishes right after you pick it in the port chooser** — the
