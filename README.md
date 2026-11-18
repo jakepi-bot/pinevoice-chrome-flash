@@ -146,6 +146,13 @@ ships. With `GPIO39` low at every boot the BootROM never runs, the firmware's US
 endpoint is the only thing on the bus, and it does not answer the loader
 handshake - no host-side tool can flash such a unit.
 
+The boot2 ISP path is closed too: `boot2_isp_mode = 1` (`--isp`, the protocol the
+`CherryUSB_CDC_DEMO` endpoint is built for) was run twice at 2 Mbaud against a
+ring-held unit, and both attempts sat silent for 29.5-29.9 s before the endpoint
+left the USB bus (`Errno 83` / `Errno 6`, `ErrorCode 0003`) with zero bytes ever
+received. Treat a 30 s silence on that endpoint as the bootloader abandoning the
+session, not as a baud or timing problem.
+
 To make it flashable, populate `R47` with a 0R link (or a wire) and keep `R45`:
 the centre/user button then pulls BOOT high as well, so holding it at power-on
 enters the BootROM. Restore the stock `chips/bl606p/eflash_loader/eflash_loader_cfg.ini`
