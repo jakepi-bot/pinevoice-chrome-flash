@@ -137,10 +137,18 @@ watched end to end (page log + serial capture).
 ## Hardware note: the shipping board cannot enter the BootROM
 
 The BL606P only enters download mode when `GPIO39` (BOOT) is high at reset
-(datasheet table 2.3). On the shipping PineVoice main board that net reaches
-only test point **TP1** and a 33K pull-down: the BOOT switch (SW5) is routed to
-**GPIO24** by `R45 = 0R`, while `R47 = NM` (the variant that would route the same
-button to BOOT) is not fitted. Pine64's "hold the centre ring at power-on"
+(datasheet table 2.3). On the shipping PineVoice main board (V0.4.2) that net is
+`BOOT/D3` — shared with the QSPI flash data line — and carries only:
+
+- `R5 = 33K` to GND (fitted) — a hard default to "boot from flash"
+- `R48 = 4.7K` in series to test point `TP6`
+- test point `TP1` directly on the net
+
+There is no pull-up and no switch on it. The one switch that could drive it,
+`SW5` (centre/user button), reaches VIO4 through `R2 = 1K` and only joins the BOOT
+net when **R47** is populated; the board ships with `R45 = 0R` (GPIO24) and
+`R47 = NM`, exactly as the schematic's own truth box states: `R45:0R + R47:NM ->
+GPIO`. Nothing on a retail board can therefore raise GPIO39. Pine64's "hold the centre ring at power-on"
 procedure therefore assumes the development stuffing option, not the board that
 ships. With `GPIO39` low at every boot the BootROM never runs, the firmware's USB
 endpoint is the only thing on the bus, and it does not answer the loader
