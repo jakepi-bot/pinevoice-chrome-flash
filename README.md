@@ -91,8 +91,8 @@ The boot log must show:
 Then network + Home Assistant:
 
 ```bash
-ping -c3 192.168.4.176                                   # same IP (DHCP by MAC)
-timeout 3 bash -c 'exec 3<>/dev/tcp/192.168.4.176/10700 && echo WYOMING_UP'
+ping -c3 192.0.2.176                                   # same IP (DHCP by MAC)
+timeout 3 bash -c 'exec 3<>/dev/tcp/192.0.2.176/10700 && echo WYOMING_UP'
 ```
 
 HA's **PineVoice** Wyoming entry reconnects on its own. Wake-word check at the
